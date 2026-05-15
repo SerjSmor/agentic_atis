@@ -1,0 +1,42 @@
+[
+  {
+    "name": "miprov2-baseline",
+    "optimizer_auto": "medium",
+    "max_bootstrapped_demos": 1,
+    "max_labeled_demos": 2,
+    "num_threads": 4,
+    "seed": 20260501
+  },
+  {
+    "name": "miprov2-light-search",
+    "optimizer_auto": "light",
+    "max_bootstrapped_demos": 1,
+    "max_labeled_demos": 2,
+    "num_threads": 4,
+    "seed": 20260502
+  },
+  {
+    "name": "miprov2-more-demos",
+    "optimizer_auto": "medium",
+    "max_bootstrapped_demos": 2,
+    "max_labeled_demos": 4,
+    "num_threads": 4,
+    "seed": 20260503
+  },
+  {
+    "name": "miprov2-heavy-search",
+    "optimizer_auto": "heavy",
+    "max_bootstrapped_demos": 2,
+    "max_labeled_demos": 4,
+    "num_threads": 4,
+    "seed": 20260504
+  },
+  {
+    "name": "miprov2-demo-rich",
+    "optimizer_auto": "medium",
+    "max_bootstrapped_demos": 3,
+    "max_labeled_demos": 6,
+    "num_threads": 4,
+    "seed": 20260505
+  }
+]

@@ -1,0 +1,16 @@
+.env
+.idea/
+__pycache__/
+*.pyc
+
+venv/
+wandb/
+
+data/
+
+experiments/**/runs/
+experiments/**/programs/
+experiments/**/results.tsv
+experiments/**/dev_sessions.tsv
+
+.DS_Store
