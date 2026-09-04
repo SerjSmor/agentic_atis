@@ -49,6 +49,80 @@ def bootstrap(c, force=False):
     print("  cd experiments/<track> && ../../venv/bin/inv run")
 
 
+@task(name="wandb-check")
+def wandb_check(c, project="agentic-atis-preflight", keep=False):
+    """Prove W&B logging works end to end before spending a real run on it.
+
+    Starts a throwaway run, logs a metric, and finishes. If this passes, the three
+    tracks will log correctly; if it fails, they will skip W&B and keep going.
+    """
+    script = '''
+import os, sys
+try:
+    import wandb
+except ImportError:
+    print("FAIL: wandb is not installed. Run: inv bootstrap")
+    sys.exit(1)
+
+print(f"wandb version      : {wandb.__version__}")
+
+key_source = None
+if os.environ.get("WANDB_API_KEY"):
+    key_source = "WANDB_API_KEY env var"
+else:
+    try:
+        if wandb.api.api_key:
+            key_source = "prior `wandb login` (~/.netrc)"
+    except Exception:
+        pass
+
+if key_source is None:
+    print("FAIL: no W&B credentials found.")
+    print("      Add WANDB_API_KEY to .env and `set -a && source .env && set +a`,")
+    print("      or run `venv/bin/wandb login`.")
+    print("      Runs still work without W&B - they just skip it.")
+    sys.exit(1)
+
+print(f"credentials from   : {key_source}")
+print("starting throwaway run ...")
+
+try:
+    run = wandb.init(
+        project=os.environ["PREFLIGHT_PROJECT"],
+        job_type="preflight",
+        name="preflight-check",
+        config={"purpose": "verify wandb connectivity"},
+        settings=wandb.Settings(init_timeout=60),
+    )
+    wandb.log({"preflight_metric": 1.0})
+    url = run.url
+    run.finish()
+except Exception as exc:
+    print(f"FAIL: wandb.init/log raised: {exc}")
+    sys.exit(1)
+
+print("")
+print("PASS: W&B logging is working.")
+print(f"run URL: {url}")
+'''
+    script_path = REPO_ROOT / ".wandb_check.py"
+    script_path.write_text(script, encoding="utf-8")
+    try:
+        with c.cd(str(REPO_ROOT)):
+            result = c.run(
+                f"PREFLIGHT_PROJECT={project} venv/bin/python .wandb_check.py",
+                pty=True,
+                warn=True,
+            )
+    finally:
+        if not keep:
+            script_path.unlink(missing_ok=True)
+
+    if not result.ok:
+        print("\nW&B is not logging. The tracks will still run and still write "
+              "results.tsv and runs/ - W&B is the only thing you lose.")
+
+
 @task
 def doctor(c):
     """Check whether this clone is ready to run an experiment."""
@@ -86,8 +160,20 @@ def doctor(c):
         "cp .env.example .env, add your key, then: set -a && source .env && set +a",
     )
 
-    if not os.environ.get("WANDB_API_KEY"):
-        print("  [--] WANDB_API_KEY not set (optional; W&B logging will be skipped)")
+    if VENV_PYTHON.exists():
+        result = c.run(
+            f"{VENV_PYTHON} -c \"import os,wandb;"
+            f"print(bool(os.environ.get('WANDB_API_KEY') or wandb.api.api_key))\"",
+            warn=True,
+            hide=True,
+        )
+        if result.ok and "True" in result.stdout:
+            print("  [ok] W&B credentials found")
+            print("       -> run `inv wandb-check` to confirm they actually work")
+        else:
+            print("  [--] no W&B credentials (optional; runs skip W&B and still "
+                  "write results.tsv)")
+            print("       -> to enable: add WANDB_API_KEY to .env, or `wandb login`")
 
     for track in TRACKS:
         agents_file = REPO_ROOT / "experiments" / track / "AGENTS.md"
