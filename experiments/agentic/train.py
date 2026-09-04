@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import sys
 from collections import Counter
 from dataclasses import dataclass
 from datetime import UTC, datetime
@@ -12,6 +13,10 @@ from typing import Any
 
 from openai import OpenAI
 from sklearn.metrics import f1_score
+
+REPO_ROOT = Path(__file__).resolve().parents[2]
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
 
 try:
     import wandb
@@ -192,17 +197,46 @@ def normalize_prediction(raw_prediction: str, valid_labels: set[str]) -> str:
     return prediction
 
 
+def wandb_credentials_available() -> bool:
+    """True if wandb can start without prompting for interactive input.
+
+    Without this check, `wandb.init()` on an unauthenticated machine prompts on a
+    TTY (invoke runs with pty=True, so it hangs forever) or raises in a headless
+    context. Either way an unattended agent stalls, so we skip W&B instead.
+    """
+    if os.environ.get("WANDB_API_KEY"):
+        return True
+    if os.environ.get("WANDB_MODE", "").lower() in {"offline", "disabled", "dryrun"}:
+        return True
+    try:
+        return bool(wandb.api.api_key)  # picks up a previous `wandb login`
+    except Exception:  # pragma: no cover - defensive
+        return False
+
+
 def maybe_init_wandb(args: argparse.Namespace, config: dict[str, Any]) -> Any:
     if args.disable_wandb or wandb is None:
         return None
 
-    return wandb.init(
-        project=args.wandb_project,
-        entity=args.wandb_entity,
-        name=args.run_name,
-        job_type=args.wandb_job_type,
-        config=config,
-    )
+    if not wandb_credentials_available():
+        print(
+            "wandb: no credentials found - set WANDB_API_KEY or run `wandb login`. "
+            "Continuing without W&B logging; results.tsv and runs/ are unaffected."
+        )
+        return None
+
+    try:
+        return wandb.init(
+            project=args.wandb_project,
+            entity=args.wandb_entity,
+            name=args.run_name,
+            job_type=args.wandb_job_type,
+            config=config,
+            settings=wandb.Settings(init_timeout=60),
+        )
+    except Exception as exc:
+        print(f"wandb: init failed ({exc}). Continuing without W&B logging.")
+        return None
 
 
 def main() -> None:

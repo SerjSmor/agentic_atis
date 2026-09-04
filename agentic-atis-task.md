@@ -103,4 +103,6 @@ These details still need to be specified later during implementation:
 
 ## Notes
 
-- This file was created from `/home/serj/Documents/Brain/Projects/Agentic ATIS/Agentic ATIS (Epic).md` and then expanded with additional task requirements.
+- This file records the original task definition for the repo, expanded with
+  additional requirements during implementation. It is kept for provenance; the
+  operational rules live in `AGENTS.md` at the repo root and in each track folder.

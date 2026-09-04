@@ -21,6 +21,7 @@ def prepare(c, dspy_train_size=100, val_size=50, split_seed=20260501):
         c.run(cmd, pty=True)
 
 
+@task
 def run(
     c,
     model="openai/gpt-4.1-nano",

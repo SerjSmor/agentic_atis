@@ -312,16 +312,46 @@ def optimizer_display_name(optimizer: str) -> str:
     }[optimizer]
 
 
+def wandb_credentials_available() -> bool:
+    """True if wandb can start without prompting for interactive input.
+
+    Without this check, `wandb.init()` on an unauthenticated machine prompts on a
+    TTY (invoke runs with pty=True, so it hangs forever) or raises in a headless
+    context. Either way an unattended agent stalls, so we skip W&B instead.
+    """
+    if os.environ.get("WANDB_API_KEY"):
+        return True
+    if os.environ.get("WANDB_MODE", "").lower() in {"offline", "disabled", "dryrun"}:
+        return True
+    try:
+        return bool(wandb.api.api_key)  # picks up a previous `wandb login`
+    except Exception:  # pragma: no cover - defensive
+        return False
+
+
 def maybe_init_wandb(args: argparse.Namespace, config: dict[str, Any]) -> Any:
     if args.disable_wandb or wandb is None:
         return None
-    return wandb.init(
-        project=args.wandb_project,
-        entity=args.wandb_entity,
-        name=args.run_name,
-        job_type=args.wandb_job_type,
-        config=config,
-    )
+
+    if not wandb_credentials_available():
+        print(
+            "wandb: no credentials found - set WANDB_API_KEY or run `wandb login`. "
+            "Continuing without W&B logging; results.tsv and runs/ are unaffected."
+        )
+        return None
+
+    try:
+        return wandb.init(
+            project=args.wandb_project,
+            entity=args.wandb_entity,
+            name=args.run_name,
+            job_type=args.wandb_job_type,
+            config=config,
+            settings=wandb.Settings(init_timeout=60),
+        )
+    except Exception as exc:
+        print(f"wandb: init failed ({exc}). Continuing without W&B logging.")
+        return None
 
 
 ATIS_DISAMBIGUATION_RULES = (
