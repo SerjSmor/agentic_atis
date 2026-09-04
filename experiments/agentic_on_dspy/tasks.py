@@ -8,10 +8,10 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 
 
 @task
-def prepare(c, dspy_train_size=100, val_size=50, split_seed=20260501):
-    cmd = "venv/bin/python prepare.py"
+def prepare(c):
+    """Regenerate the canonical frozen split. Prefer `inv bootstrap` from the repo root."""
     with c.cd(str(REPO_ROOT)):
-        c.run(cmd, pty=True)
+        c.run("venv/bin/python prepare.py", pty=True)
 
 
 @task

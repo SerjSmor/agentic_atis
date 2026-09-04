@@ -17,7 +17,7 @@ def run(
 ):
     eval_path = "shared/data/val_subset.jsonl" if eval_split == "val" else "shared/data/test_subset.jsonl"
     cmd = (
-        "venv/bin/python train.py "
+        "venv/bin/python experiments/agentic/train.py "
         f"--model {model} "
         f"--eval-path {eval_path} "
         f"--eval-split-name {eval_split} "

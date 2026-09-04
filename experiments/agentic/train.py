@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import sys
 from collections import Counter
 from dataclasses import dataclass
 from datetime import UTC, datetime
@@ -12,6 +13,10 @@ from typing import Any
 
 from openai import OpenAI
 from sklearn.metrics import f1_score
+
+REPO_ROOT = Path(__file__).resolve().parents[2]
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
 
 try:
     import wandb
