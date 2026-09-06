@@ -4,7 +4,7 @@ import os
 import sys
 from pathlib import Path
 
-from invoke import task
+from invoke import Exit, task
 
 REPO_ROOT = Path(__file__).resolve().parent
 VENV_DIR = REPO_ROOT / "venv"
@@ -18,6 +18,27 @@ def _split_exists() -> bool:
     return all((SHARED_DATA_DIR / name).exists() for name in SPLIT_FILES)
 
 
+def _site_packages() -> Path:
+    matches = sorted(VENV_DIR.glob("lib/python*/site-packages"))
+    if not matches:
+        raise Exit(f"no site-packages under {VENV_DIR}; run: inv bootstrap")
+    return matches[0]
+
+
+def _write_repo_root_pth() -> None:
+    """Make `import shared` work from any cwd, for any script under the repo.
+
+    The tracks run `venv/bin/python experiments/<track>/train*.py` from the repo
+    root. Python puts the *script's* directory on sys.path, not the cwd, so the
+    repo root is never importable without help. A .pth in site-packages is the
+    least intrusive way to add it: it applies to every process that uses this
+    venv, including subprocesses, and needs no PYTHONPATH in the environment.
+    """
+    pth = _site_packages() / "agentic_atis_repo_root.pth"
+    pth.write_text(f"{REPO_ROOT}\n", encoding="utf-8")
+    print(f"    wrote {pth}")
+
+
 @task
 def bootstrap(c, force=False):
     """Create the venv, install requirements, and generate the frozen split.
@@ -28,13 +49,28 @@ def bootstrap(c, force=False):
     with c.cd(str(REPO_ROOT)):
         if not VENV_PYTHON.exists():
             print("==> creating venv")
-            c.run(f"{sys.executable} -m venv venv", pty=True)
+            created = c.run(f"{sys.executable} -m venv venv", pty=True, warn=True)
+            if not created.ok or not VENV_PYTHON.exists():
+                # Some distro pythons ship without ensurepip, so `-m venv` makes a
+                # venv with no pip in it. Fall back to whatever bootstrapper exists.
+                print("==> `python -m venv` unusable here, falling back")
+                for fallback in ("uv venv --seed venv", f"{sys.executable} -m virtualenv venv"):
+                    if c.run(fallback, pty=True, warn=True).ok and VENV_PYTHON.exists():
+                        break
+                else:
+                    raise Exit(
+                        "Could not create a venv with pip. Install `uv` "
+                        "(https://docs.astral.sh/uv/) or `virtualenv`, then rerun."
+                    )
         else:
             print("==> venv already exists, skipping")
 
         print("==> installing requirements")
         c.run("venv/bin/python -m pip install --upgrade pip --quiet", pty=True)
         c.run("venv/bin/python -m pip install -r requirements.txt --quiet", pty=True)
+
+        print("==> putting the repo root on the venv's import path")
+        _write_repo_root_pth()
 
         if _split_exists() and not force:
             print(f"==> frozen split already present in {SHARED_DATA_DIR}, skipping")
@@ -147,6 +183,17 @@ def doctor(c):
             hide=True,
         )
         check("dependencies importable", result.ok, "run: inv bootstrap")
+
+        result = c.run(
+            f"cd / && {VENV_PYTHON} -c 'import shared.constants, shared.results'",
+            warn=True,
+            hide=True,
+        )
+        check(
+            "repo root importable from any cwd",
+            result.ok,
+            "run: inv bootstrap  (it writes the .pth that puts the repo on sys.path)",
+        )
 
     check(
         "frozen split present",
