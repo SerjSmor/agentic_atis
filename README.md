@@ -45,21 +45,31 @@ parallel, in three terminals, against one clone.
 
 ## Quick start
 
+Requires [uv](https://docs.astral.sh/uv/). Nothing else — uv brings its own
+Python:
+
+```bash
+curl -LsSf https://astral.sh/uv/install.sh | sh
+```
+
 ```bash
 git clone https://github.com/SerjSmor/agentic_atis.git
 cd agentic_atis
 
-pip install invoke              # only thing needed outside the venv
-inv bootstrap                   # venv + requirements + frozen split
+uvx --from invoke inv bootstrap   # venv + requirements + frozen split
 
-cp .env.example .env            # add your OPENAI_API_KEY
+cp .env.example .env              # add your OPENAI_API_KEY
 set -a && source .env && set +a
 
-inv doctor                      # confirms the clone is ready
+venv/bin/inv doctor               # confirms the clone is ready
 ```
 
-`inv bootstrap` is idempotent. `inv doctor` checks the venv, dependencies, split,
-API key, and that each track's `inv run` is registered — run it before a live demo.
+`uvx` runs `inv` without installing it globally; after bootstrap the venv has its
+own copy at `venv/bin/inv`, which is what every later command uses.
+
+`inv bootstrap` is idempotent. `inv doctor` checks uv, the venv, dependencies, the
+split, the API key, that `import shared` resolves from any directory, and that each
+track's `inv run` is registered — run it before a live demo.
 
 ## Running a track by hand
 

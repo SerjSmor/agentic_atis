@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import os
-import sys
+import shutil
 from pathlib import Path
 
 from invoke import Exit, task
@@ -16,6 +16,19 @@ TRACKS = ("agentic", "dspy", "agentic_on_dspy")
 
 def _split_exists() -> bool:
     return all((SHARED_DATA_DIR / name).exists() for name in SPLIT_FILES)
+
+
+def _require_uv() -> str:
+    """This repo standardises on uv: it brings its own Python and its own
+    installer, so the venv never depends on the host python having ensurepip."""
+    uv = shutil.which("uv")
+    if uv is None:
+        raise Exit(
+            "uv is required but not on PATH.\n"
+            "  install: curl -LsSf https://astral.sh/uv/install.sh | sh\n"
+            "  docs:    https://docs.astral.sh/uv/"
+        )
+    return uv
 
 
 def _site_packages() -> Path:
@@ -47,27 +60,22 @@ def bootstrap(c, force=False):
     cloning. Pass --force to regenerate the split even if it already exists.
     """
     with c.cd(str(REPO_ROOT)):
+        _require_uv()
+
         if not VENV_PYTHON.exists():
             print("==> creating venv")
-            created = c.run(f"{sys.executable} -m venv venv", pty=True, warn=True)
-            if not created.ok or not VENV_PYTHON.exists():
-                # Some distro pythons ship without ensurepip, so `-m venv` makes a
-                # venv with no pip in it. Fall back to whatever bootstrapper exists.
-                print("==> `python -m venv` unusable here, falling back")
-                for fallback in ("uv venv --seed venv", f"{sys.executable} -m virtualenv venv"):
-                    if c.run(fallback, pty=True, warn=True).ok and VENV_PYTHON.exists():
-                        break
-                else:
-                    raise Exit(
-                        "Could not create a venv with pip. Install `uv` "
-                        "(https://docs.astral.sh/uv/) or `virtualenv`, then rerun."
-                    )
+            # Deliberately `venv/`, not uv's default `.venv/`: the path is
+            # hardcoded across every track's tasks.py and AGENTS.md.
+            c.run("uv venv venv", pty=True)
         else:
             print("==> venv already exists, skipping")
 
         print("==> installing requirements")
-        c.run("venv/bin/python -m pip install --upgrade pip --quiet", pty=True)
-        c.run("venv/bin/python -m pip install -r requirements.txt --quiet", pty=True)
+        # No pip inside the venv, and none needed - uv does the installing.
+        c.run(
+            "uv pip install --python venv/bin/python -r requirements.txt --quiet",
+            pty=True,
+        )
 
         print("==> putting the repo root on the venv's import path")
         _write_repo_root_pth()
@@ -173,6 +181,12 @@ def doctor(c):
                 print(f"         -> {hint}")
 
     print("\nagentic-atis doctor\n")
+
+    check(
+        "uv installed",
+        shutil.which("uv") is not None,
+        "install: curl -LsSf https://astral.sh/uv/install.sh | sh",
+    )
 
     check("venv exists", VENV_PYTHON.exists(), "run: inv bootstrap")
 
