@@ -12,5 +12,6 @@ experiments/**/runs/
 experiments/**/programs/
 experiments/**/results.tsv
 experiments/**/dev_sessions.tsv
+experiments/**/.wave/
 
 .DS_Store

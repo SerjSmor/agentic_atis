@@ -9,6 +9,7 @@ EXPERIMENTS_DIR = REPO_ROOT / "experiments"
 AGENTIC_DIR = EXPERIMENTS_DIR / "agentic"
 DSPY_DIR = EXPERIMENTS_DIR / "dspy"
 AGENTIC_ON_DSPY_DIR = EXPERIMENTS_DIR / "agentic_on_dspy"
+MULTI_AGENT_DIR = EXPERIMENTS_DIR / "multi_agent"
 
 MODEL_PRICING_PER_1M_TOKENS: dict[str, dict[str, float]] = {
     "gpt-4.1": {"input": 2.00, "output": 8.00},

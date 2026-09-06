@@ -1,6 +1,6 @@
 # Agentic ATIS — Shared Protocol
 
-This repo compares **three harnesses** for improving an ATIS intent-classification
+This repo compares **four harnesses** for improving an ATIS intent-classification
 prompt. Each harness is a separate agent workspace under `experiments/`.
 
 This file holds the rules **every** track inherits. Your track's own `AGENTS.md`
@@ -14,12 +14,13 @@ to change.
 | `experiments/agentic/` | A coding agent editing prompts directly. No DSPy. |
 | `experiments/dspy/` | DSPy optimization on a fixed plan. No agent redesign. |
 | `experiments/agentic_on_dspy/` | A coding agent redesigning a DSPy program between runs. |
+| `experiments/multi_agent/` | An orchestrator fanning out to ten agents in parallel. |
 
 You were started with one of these as your working directory. **That folder is your
 track.** Read its `AGENTS.md` before doing anything else.
 
 Do not read, run, or modify another track's folder. The comparison is only
-meaningful if the three tracks stay independent. In particular, never copy a prompt,
+meaningful if the four tracks stay independent. In particular, never copy a prompt,
 signature, or result from a sibling track into yours.
 
 ## First command, always
@@ -58,7 +59,7 @@ you invoke Python yourself from inside a track folder, those paths silently brea
 
 Run `../../venv/bin/inv --list` to see the tasks your track exposes.
 
-## Invariants — the same for all three tracks
+## Invariants — the same for all four tracks
 
 These are what make the comparison valid. **Changing any of them invalidates the
 experiment.** If you believe one of them is wrong, say so in your final summary; do

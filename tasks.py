@@ -11,7 +11,7 @@ VENV_DIR = REPO_ROOT / "venv"
 VENV_PYTHON = VENV_DIR / "bin" / "python"
 SHARED_DATA_DIR = REPO_ROOT / "shared" / "data"
 SPLIT_FILES = ("train_subset.jsonl", "val_subset.jsonl", "test_subset.jsonl")
-TRACKS = ("agentic", "dspy", "agentic_on_dspy")
+TRACKS = ("agentic", "dspy", "agentic_on_dspy", "multi_agent")
 
 
 def _split_exists() -> bool:

@@ -3,7 +3,7 @@
 Which harness do you trust to improve a prompt: a **compiler** (DSPy), or a **coding
 agent**?
 
-This repo runs that comparison on ATIS intent classification. Three tracks, one
+This repo runs that comparison on ATIS intent classification. Four tracks, one
 frozen split, one model, one metric. The only variable is what is allowed to edit the
 prompt.
 
@@ -12,6 +12,7 @@ prompt.
 | [`experiments/agentic`](experiments/agentic/AGENTS.md) | A coding agent editing prompts directly. No DSPy. |
 | [`experiments/dspy`](experiments/dspy/AGENTS.md) | DSPy optimization on a fixed plan. No agent redesign. |
 | [`experiments/agentic_on_dspy`](experiments/agentic_on_dspy/AGENTS.md) | A coding agent redesigning a DSPy program between runs. |
+| [`experiments/multi_agent`](experiments/multi_agent/AGENTS.md) | An orchestrator fanning ten agents out in parallel, one generation. |
 
 The point is not only to compare scores, but to compare workflows: how each harness
 spends model calls, optimization budget, and engineering effort on the same small
@@ -19,7 +20,7 @@ classification task.
 
 ## Each track is an agent workspace
 
-The three `AGENTS.md` files under `experiments/` **are** the experiment. Each one
+The four `AGENTS.md` files under `experiments/` **are** the experiment. Each one
 tells a coding agent what it is and is not allowed to change. Everything else is
 pinned.
 
@@ -29,9 +30,10 @@ protocol at the root, and its own track's rules.
 
 ```
 AGENTS.md                              # shared protocol — inherited by all tracks
-experiments/agentic/AGENTS.md          # ── the three prompts under test ──
+experiments/agentic/AGENTS.md          # ── the four prompts under test ──
 experiments/dspy/AGENTS.md
 experiments/agentic_on_dspy/AGENTS.md
+experiments/multi_agent/AGENTS.md
 ```
 
 To run a track, start your agent with that folder as its working directory:
@@ -40,8 +42,8 @@ To run a track, start your agent with that folder as its working directory:
 cd experiments/dspy && codex          # or claude, or your agent of choice
 ```
 
-Then tell it to run its track. Nothing else to configure — and the three can run in
-parallel, in three terminals, against one clone.
+Then tell it to run its track. Nothing else to configure — and the four can run in
+parallel, in four terminals, against one clone.
 
 ## Quick start
 
@@ -80,6 +82,7 @@ to the repo root first, so relative paths resolve correctly:
 cd experiments/agentic         && ../../venv/bin/inv run
 cd experiments/dspy            && ../../venv/bin/inv run-plan
 cd experiments/agentic_on_dspy && ../../venv/bin/inv run --optimizer=gepa
+cd experiments/multi_agent     && ../../venv/bin/inv run-wave
 ```
 
 Use `../../venv/bin/inv --list` to see a track's tasks. **Do not call the Python
@@ -93,7 +96,7 @@ cd experiments/<track> && ../../venv/bin/inv run --eval-split=test --wandb-job-t
 
 ## Shared protocol
 
-All three tracks use:
+All four tracks use:
 
 - the same ATIS subset and the same frozen split
 - the same task model: `gpt-4.1-nano`
@@ -149,6 +152,11 @@ experiments/
     AGENTS.md             track rules — adaptive, agent may redesign
     train_dspy.py         entrypoint (starts identical to dspy/, meant to diverge)
     tasks.py
+  multi_agent/
+    AGENTS.md             track rules — orchestrator, ten parallel workers
+    train.py              entrypoint (fork of agentic/, adds --variant)
+    variants/             one prompt file per worker (committed, not ignored)
+    tasks.py
 ```
 
 `experiments/dspy/train_dspy.py` and `experiments/agentic_on_dspy/train_dspy.py`
@@ -168,6 +176,7 @@ W&B projects, used when `WANDB_API_KEY` is set:
 - `agentic-atis-compare-agentic`
 - `agentic-atis-compare-dspy`
 - `agentic-atis-compare-agentic-on-dspy`
+- `agentic-atis-compare-multi-agent`
 
 ## Background
 
